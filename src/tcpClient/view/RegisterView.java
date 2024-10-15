@@ -125,8 +125,8 @@ public class RegisterView extends javax.swing.JFrame {
 
     private void btnRegisterActionPerformed(java.awt.event.ActionEvent evt) {
         String userName = tfUsername.getText();
-        String password = Arrays.toString(tfPassword.getPassword());
-        String confirmPassword = Arrays.toString(tfConfirmPassword.getPassword());
+        String password = String.valueOf(tfPassword.getPassword());
+        String confirmPassword = String.valueOf(tfConfirmPassword.getPassword());
 
         if (userName.isEmpty()) {
             tfUsername.grabFocus();

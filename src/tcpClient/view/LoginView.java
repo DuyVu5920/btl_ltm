@@ -106,9 +106,9 @@ public class LoginView extends javax.swing.JFrame {
         String userName = tfUsername.getText();
         String password = String.valueOf(tfPassword.getPassword());
 
-        if (userName.equals("")) {
+        if (userName.isEmpty()) {
             tfUsername.grabFocus();
-        } else if (password.equals("")) {
+        } else if (password.isEmpty()) {
             tfPassword.grabFocus();
         } else {
             ClientRun.socketHandler.login(userName, password);

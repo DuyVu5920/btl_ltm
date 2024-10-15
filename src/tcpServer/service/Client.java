@@ -61,7 +61,7 @@ public class Client implements Runnable {
             try {
                 // receive the request from client
                 received = dis.readUTF();
-                System.out.println(received);
+                System.out.println("RECEIVED: "+received);
                 String type = received.split(";")[0];
 
                 switch (type) {

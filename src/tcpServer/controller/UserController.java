@@ -32,7 +32,7 @@ public class UserController {
     public String register(String username, String password) {
         //  Check user exit
         try {
-            PreparedStatement preparedStatement = connection.prepareStatement(CHECK_USER);
+            PreparedStatement preparedStatement = connection.prepareStatement(CHECK_USER,ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
             preparedStatement.setString(1, username);
             ResultSet resultSet = preparedStatement.executeQuery();
             if (resultSet.first()) {
@@ -118,15 +118,15 @@ public class UserController {
             PreparedStatement preparedStatement = connection.prepareStatement(GET_INFO_USER);
             preparedStatement.setString(1, username);
 
-            ResultSet r = preparedStatement.executeQuery();
-            while(r.next()) {
-                user.setUsername(r.getString("username"));
-                user.setScore(r.getFloat("score"));
-                user.setWin(r.getInt("win"));
-                user.setDraw(r.getInt("draw"));
-                user.setLose(r.getInt("lose"));
-                user.setAvgCompetitor(r.getFloat("avgCompetitor"));
-                user.setAvgTime(r.getFloat("avgTime"));
+            ResultSet resultSet = preparedStatement.executeQuery();
+            while(resultSet.next()) {
+                user.setUsername(resultSet.getString("username"));
+                user.setScore(resultSet.getFloat("score"));
+                user.setWin(resultSet.getInt("win"));
+                user.setDraw(resultSet.getInt("draw"));
+                user.setLose(resultSet.getInt("lose"));
+                user.setAvgCompetitor(resultSet.getFloat("avgCompetitor"));
+                user.setAvgTime(resultSet.getFloat("avgTime"));
             }
             return user;
         } catch (SQLException e) {

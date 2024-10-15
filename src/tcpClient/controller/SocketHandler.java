@@ -158,7 +158,7 @@ public class SocketHandler {
             // lưu user login
             this.loginUser = splitted[2];
             System.out.println(loginUser);
-            JOptionPane.showMessageDialog(ClientRun.loginView,"Hello" + loginUser + "!");
+            JOptionPane.showMessageDialog(ClientRun.loginView,"Hello " + loginUser + "!");
         }
     }
 
