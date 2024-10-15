@@ -1,7 +1,7 @@
 # Game giải toán đối kháng
 ## Công việc của mỗi thành viên:
 
-Vũ Trọng Duy - B18DCCN114:
+**Vũ Trọng Duy - B18DCCN114:**
 - thiết kế GUI phần gameplay và login/register
 - tạo kết nối server-client và kết nối database
 - code logic game
@@ -22,7 +22,7 @@ Vũ Trọng Duy - B18DCCN114:
 - Kết quả các trận đấu được lưu vào server. Mỗi người chơi đều có thể vào xem bảng xếp hạng các người chơi trong toàn bộ hệ thống, theo lần lượt các tiêu chí: tổng số điểm (giảm dần), trung bình điểm của các đối thủ đã gặp (giảm dần), trung bình thời gian kết thúc trong các trận thắng (tăng dần).
 
 ## Techstack
-- GUI: java swing
-- TCP/IP: java Socket/ServerSocket
-- Database connection: JDBC/mySQL Driver
-- Muiti-thread programming
+- **GUI**: java swing
+- **TCP/IP**: java Socket/ServerSocket
+- **Database connection**: JDBC/mySQL Driver
+- **Muiti-threaded programming**: ThreadPoolExecutor
