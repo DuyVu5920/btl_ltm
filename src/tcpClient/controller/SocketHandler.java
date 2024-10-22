@@ -9,16 +9,53 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.util.Vector;
 
 public class SocketHandler {
     Socket socket;
     DataInputStream dis;
     DataOutputStream dos;
+
     String loginUser;
+    float score = 0;
+    String roomIdPresent = null; // lưu room hiện tại
 
     Thread listener;
 
-    public SocketHandler() {}
+    public SocketHandler() {
+    }
+
+    public Socket getSocket() {
+        return socket;
+    }
+
+    public void setSocket(Socket socket) {
+        this.socket = socket;
+    }
+
+    public String getLoginUser() {
+        return loginUser;
+    }
+
+    public void setLoginUser(String loginUser) {
+        this.loginUser = loginUser;
+    }
+
+    public float getScore() {
+        return score;
+    }
+
+    public void setScore(float score) {
+        this.score = score;
+    }
+
+    public String getRoomIdPresent() {
+        return roomIdPresent;
+    }
+
+    public void setRoomIdPresent(String roomIdPresent) {
+        this.roomIdPresent = roomIdPresent;
+    }
 
     public String connect(String addr, int port) {
         try {
@@ -80,7 +117,30 @@ public class SocketHandler {
                     case "GET_INFO_USER":
                         onReceiveGetInfoUser(received);
                         break;
-
+                    case "INVITE_TO_PLAY":
+                        onReceiveInviteToPlay(received);
+                        break;
+                    case "ACCEPT_PLAY":
+                        onReceiveAcceptPlay(received);
+                        break;
+                    case "REJECT_PLAY":
+                        onReceiveRejectPlay(received);
+                        break;
+                    case "LEAVE_GAME":
+                        onReceiveLeaveGame(received);
+                        break;
+                    case "CHECK_STATUS_USER":
+                        onReceiveCheckStatusUser(received);
+                        break;
+                    case "START_GAME":
+                        onReceiveStartGame(received);
+                        break;
+                    case "RESULT_GAME":
+                        onReceiveResultGame(received);
+                        break;
+                    case "ASK_PLAY_AGAIN":
+                        onReceiveAskPlayAgain(received);
+                        break;
                     case "EXIT":
                         running = false;
                 }
@@ -132,13 +192,71 @@ public class SocketHandler {
         sendData(data);
     }
 
-    public void logout () {
+    public void logout() {
         this.loginUser = null;
         sendData("LOGOUT");
     }
 
-    public void close () {
+    public void close() {
         sendData("CLOSE");
+    }
+
+    public void getListOnline() {
+        sendData("GET_LIST_ONLINE");
+    }
+
+    public void getInfoUser(String username) {
+        sendData("GET_INFO_USER;" + username);
+    }
+
+    public void checkStatusUser(String username) {
+        sendData("CHECK_STATUS_USER;" + username);
+    }
+
+    //gameplay
+
+    public void inviteToPlay(String userInvited) {
+        sendData("INVITE_TO_PLAY;" + loginUser + ";" + userInvited);
+    }
+
+    public void startGame (String userInvited) {
+        sendData("START_GAME;" + loginUser + ";" + userInvited + ";" + roomIdPresent);
+    }
+
+    public void leaveGame(String userInvited) {
+        sendData("LEAVE_GAME;" + loginUser + ";" + userInvited + ";" + roomIdPresent);
+    }
+    public void submitResult (String competitor) {
+        String result1 = ClientRun.gameView.getSelectedButton1();
+        String result2 = ClientRun.gameView.getSelectedButton2();
+        String result3 = ClientRun.gameView.getSelectedButton3();
+        String result4 = ClientRun.gameView.getSelectedButton4();
+        if (result1 == null || result2 == null || result3 == null || result4 == null) {
+            ClientRun.gameView.showMessage("Don't leave blank!");
+        } else {
+            ClientRun.gameView.pauseTime();
+            // Handle calculate time
+            String[] splitted = ClientRun.gameView.pbgTimer.getString().split(":");
+            String countDownTime = splitted[1];
+            int time = 30 - Integer.parseInt(countDownTime);
+
+            String data = ClientRun.gameView.getA1() + ";" + ClientRun.gameView.getB1() + ";" + result1 + ";"
+                    + ClientRun.gameView.getA2() + ";" + ClientRun.gameView.getB2() + ";" + result2 + ";"
+                    + ClientRun.gameView.getA3() + ";" + ClientRun.gameView.getB3() + ";" + result3 + ";"
+                    + ClientRun.gameView.getA4() + ";" + ClientRun.gameView.getB4() + ";" + result4 + ";"
+                    + time;
+
+            sendData("SUBMIT_RESULT;" + loginUser + ";" + competitor + ";" + roomIdPresent + ";" + data);
+            ClientRun.gameView.afterSubmit();
+        }
+    }
+
+    public void acceptPlayAgain() {
+        sendData("ASK_PLAY_AGAIN;YES;" + loginUser);
+    }
+
+    public void rejectPlayAgain() {
+        sendData("ASK_PLAY_AGAIN;NO;" + loginUser);
     }
 
     /***
@@ -157,8 +275,13 @@ public class SocketHandler {
         } else if (status.equals("success")) {
             // lưu user login
             this.loginUser = splitted[2];
-            System.out.println(loginUser);
-            JOptionPane.showMessageDialog(ClientRun.loginView,"Hello " + loginUser + "!");
+            this.score = Float.parseFloat(splitted[3]);
+            // chuyển scene
+            ClientRun.closeScene(ClientRun.SceneName.LOGIN);
+            ClientRun.openScene(ClientRun.SceneName.HOMEVIEW);
+            // auto set info user
+            ClientRun.homeView.setUsername(loginUser);
+            ClientRun.homeView.setUserScore(score);
         }
     }
 
@@ -180,12 +303,220 @@ public class SocketHandler {
         }
     }
 
-    private void onReceiveLogout(String received) {
-    }
-
     private void onReceiveGetListOnline(String received) {
+        // get status from data
+        String[] splitted = received.split(";");
+        String status = splitted[1];
+
+        if (status.equals("success")) {
+            int userCount = Integer.parseInt(splitted[2]);
+
+            // https://niithanoi.edu.vn/huong-dan-thao-tac-voi-jtable-lap-trinh-java-swing.html
+            Vector vheader = new Vector();
+            vheader.add("User");
+
+            Vector vdata = new Vector();
+            if (userCount > 1) {
+                for (int i = 3; i < userCount + 3; i++) {
+                    String user = splitted[i];
+                    if (!user.equals(loginUser) && !user.equals("null")) {
+                        Vector vrow = new Vector();
+                        vrow.add(user);
+                        vdata.add(vrow);
+                    }
+                }
+
+                ClientRun.homeView.setListUser(vdata, vheader);
+            } else {
+                ClientRun.homeView.resetTblUser();
+            }
+
+        } else {
+            JOptionPane.showMessageDialog(ClientRun.loginView, "Have some error!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     private void onReceiveGetInfoUser(String received) {
+        // get status from data
+        String[] splitted = received.split(";");
+        String status = splitted[1];
+
+        if (status.equals("success")) {
+            String userName = splitted[2];
+            String userScore = splitted[3];
+            String userWin = splitted[4];
+            String userDraw = splitted[5];
+            String userLose = splitted[6];
+            String userAvgCompetitor = splitted[7];
+            String userAvgTime = splitted[8];
+            String userStatus = splitted[9];
+
+            ClientRun.openScene(ClientRun.SceneName.INFOPLAYER);
+            ClientRun.infoPlayerView.setInfoUser(userName, userScore, userWin, userDraw, userLose, userAvgCompetitor, userAvgTime, userStatus);
+        }
     }
+
+    private void onReceiveLogout(String received) {
+        // get status from data
+        String[] splitted = received.split(";");
+        String status = splitted[1];
+
+        if (status.equals("success")) {
+            ClientRun.closeScene(ClientRun.SceneName.HOMEVIEW);
+            ClientRun.openScene(ClientRun.SceneName.LOGIN);
+        }
+    }
+
+    //Handle gameplay
+    private void onReceiveInviteToPlay(String received) {
+        // get status from data
+        String[] splitted = received.split(";");
+        String status = splitted[1];
+
+        if (status.equals("success")) {
+            String userHost = splitted[2];
+            String userInvited = splitted[3];
+            String roomId = splitted[4];
+            if (JOptionPane.showConfirmDialog(ClientRun.homeView, userHost + " want to play game with you?", "Game?", JOptionPane.YES_NO_OPTION)==JOptionPane.YES_NO_OPTION){
+                ClientRun.openScene(ClientRun.SceneName.GAMEVIEW);
+                ClientRun.gameView.setInfoPlayer(userHost);
+                roomIdPresent = roomId;
+                ClientRun.gameView.setStateUserInvited();
+                sendData("ACCEPT_PLAY;" + userHost + ";" + userInvited + ";" + roomId);
+            } else {
+                sendData("REJECT_PLAY;" + userHost + ";" + userInvited + ";" + roomId);
+            }
+        }
+    }
+
+    private void onReceiveAcceptPlay(String received) {
+        // get status from data
+        String[] splitted = received.split(";");
+        String status = splitted[1];
+
+        if (status.equals("success")) {
+            String userHost = splitted[2];
+            String userInvited = splitted[3];
+            roomIdPresent = splitted[4];
+            ClientRun.openScene(ClientRun.SceneName.GAMEVIEW);
+            ClientRun.gameView.setInfoPlayer(userInvited);
+            ClientRun.gameView.setStateHostRoom();
+        }
+    }
+
+    private void onReceiveRejectPlay(String received) {
+        // get status from data
+        String[] splitted = received.split(";");
+        String status = splitted[1];
+
+        if (status.equals("success")) {
+            String userHost = splitted[2];
+            String userInvited = splitted[3];
+
+            JOptionPane.showMessageDialog(ClientRun.homeView, userInvited + " don't want to play with you!");
+        }
+    }
+
+    private void onReceiveLeaveGame(String received) {
+        // get status from data
+        String[] splitted = received.split(";");
+        String status = splitted[1];
+
+        if (status.equals("success")) {
+            String user1 = splitted[2];
+            String user2 = splitted[3];
+
+            roomIdPresent = null;
+            ClientRun.closeScene(ClientRun.SceneName.GAMEVIEW);
+            JOptionPane.showMessageDialog(ClientRun.homeView, user1 + " leave to game!");
+        }
+    }
+
+    private void onReceiveCheckStatusUser(String received) {
+        // get status from data
+        String[] splitted = received.split(";");
+        String status = splitted[2];
+        ClientRun.homeView.setStatusCompetitor(status);
+    }
+
+    private void onReceiveStartGame(String received) {
+        // get status from data
+        String[] splitted = received.split(";");
+        String status = splitted[1];
+
+        if (status.equals("success")) {
+            String a1 = splitted[3];
+            String b1 = splitted[4];
+            String answer1a = splitted[5];
+            String answer1b = splitted[6];
+            String answer1c = splitted[7];
+            String answer1d = splitted[8];
+            ClientRun.gameView.setQuestion1(a1, b1, answer1a, answer1b, answer1c, answer1d);
+
+            String a2 = splitted[9];
+            String b2 = splitted[10];
+            String answer2a = splitted[11];
+            String answer2b = splitted[12];
+            String answer2c = splitted[13];
+            String answer2d = splitted[14];
+            ClientRun.gameView.setQuestion2(a2, b2, answer2a, answer2b, answer2c, answer2d);
+
+            String a3 = splitted[15];
+            String b3 = splitted[16];
+            String answer3a = splitted[17];
+            String answer3b = splitted[18];
+            String answer3c = splitted[19];
+            String answer3d = splitted[20];
+            ClientRun.gameView.setQuestion3(a3, b3, answer3a, answer3b, answer3c, answer3d);
+
+            String a4 = splitted[21];
+            String b4 = splitted[22];
+            String answer4a = splitted[23];
+            String answer4b = splitted[24];
+            String answer4c = splitted[25];
+            String answer4d = splitted[26];
+            ClientRun.gameView.setQuestion4(a4, b4, answer4a, answer4b, answer4c, answer4d);
+
+            ClientRun.gameView.setStartGame(30);
+        }
+    }
+
+    private void onReceiveResultGame(String received) {
+        // get status from data
+        String[] splitted = received.split(";");
+        String status = splitted[1];
+        String result = splitted[2];
+        String user1 = splitted[3];
+        String user2 = splitted[4];
+        String roomId = splitted[5];
+
+        if (status.equals("success")) {
+            ClientRun.gameView.setWaitingRoom();
+            if (result.equals("DRAW")) {
+                ClientRun.gameView.showAskPlayAgain("The game is draw. Do you want to play continue?");
+            } else if (result.equals(loginUser)) {
+                ClientRun.gameView.showAskPlayAgain("You win. Do you want to play continue?");
+            } else {
+                ClientRun.gameView.showAskPlayAgain("You lose. Do you want to play continue?");
+            }
+        }
+    }
+
+    private void onReceiveAskPlayAgain(String received) {
+        // get status from data
+        String[] splitted = received.split(";");
+        String status = splitted[1];
+
+        if (status.equals("NO")) {
+            ClientRun.closeScene(ClientRun.SceneName.GAMEVIEW);
+            JOptionPane.showMessageDialog(ClientRun.homeView, "End Game!");
+        } else {
+            if (loginUser.equals(splitted[2])) {
+                ClientRun.gameView.setStateHostRoom();
+            } else {
+                ClientRun.gameView.setStateUserInvited();
+            }
+        }
+    }
+
 }

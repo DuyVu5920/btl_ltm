@@ -1,4 +1,4 @@
-package helper;
+package tcpClient.helper;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -12,7 +12,7 @@ public class CustumDateTimeFormatter {
         return addZero(seconds / 60) + ":" + addZero(seconds % 60);
     }
 
-    public static String addZero(int n) {
+    private static String addZero(int n) {
         if (n < 10) {
             return "0" + n;
         }

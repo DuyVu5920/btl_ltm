@@ -62,7 +62,8 @@ public class UserController {
             ResultSet resultSet = preparedStatement.executeQuery();
 
             if (resultSet.first()) {
-                return "success;" + username;
+                float score = resultSet.getFloat("score");
+                return "success;" + username + ";" + score;
             } else {
                 return "failed;" + "Please enter the correct account password!";
             }

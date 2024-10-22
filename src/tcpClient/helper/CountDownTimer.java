@@ -1,4 +1,4 @@
-package helper;
+package tcpClient.helper;
 
 import java.util.Timer;
 import java.util.TimerTask;
@@ -60,7 +60,7 @@ public class CountDownTimer {
                         try {
                             executor.submit(tickCallback);
                         } catch (Exception ex) {
-//                            Logger.getLogger(Caro.class.getName()).log(Level.SEVERE, null, ex);
+                            System.err.println(ex.getMessage());
                         }
                     }
 
@@ -72,7 +72,7 @@ public class CountDownTimer {
                             }
                             executor.shutdown();
                         } catch (Exception ex) {
-//                            Logger.getLogger(Caro.class.getName()).log(Level.SEVERE, null, ex);
+                            System.err.println(ex.getMessage());
                         }
                         timer.cancel();
                         timer.purge();

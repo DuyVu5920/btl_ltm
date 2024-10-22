@@ -7,6 +7,7 @@ import java.net.Socket;
 import java.sql.SQLException;
 
 import tcpServer.controller.UserController;
+import tcpServer.helper.Question;
 import tcpServer.run.ServerRun;
 
 public class Client implements Runnable {
@@ -15,6 +16,8 @@ public class Client implements Runnable {
     DataOutputStream dos;
     String loginUser;
     Client clientCompetitor;
+    Room joinedRoom;
+
     private UserController userController = new UserController();
 
     public Client(Socket socket) throws IOException {
@@ -35,8 +38,16 @@ public class Client implements Runnable {
         return clientCompetitor;
     }
 
-    public void setcCompetitor(Client clientCompetitor) {
+    public void setClientCompetitor(Client clientCompetitor) {
         this.clientCompetitor = clientCompetitor;
+    }
+
+    public Room getJoinedRoom() {
+        return joinedRoom;
+    }
+
+    public void setJoinedRoom(Room joinedRoom) {
+        this.joinedRoom = joinedRoom;
     }
 
     // Handle send data to client
@@ -83,11 +94,36 @@ public class Client implements Runnable {
                     case "CLOSE":
                         onReceiveClose();
                         break;
+                    //gameplay
+                    case "INVITE_TO_PLAY":
+                        onReceiveInviteToPlay(received);
+                        break;
+                    case "ACCEPT_PLAY":
+                        onReceiveAcceptPlay(received);
+                        break;
+                    case "REJECT_PLAY":
+                        onReceiveRejectPlay(received);
+                        break;
+                    case "LEAVE_GAME":
+                        onReceiveLeaveGame(received);
+                        break;
+                    case "CHECK_STATUS_USER":
+                        onReceiveCheckStatusUser(received);
+                        break;
+                    case "START_GAME":
+                        onReceiveStartGame(received);
+                        break;
+                    case "SUBMIT_RESULT":
+                        onReceiveSubmitResult(received);
+                        break;
+                    case "ASK_PLAY_AGAIN":
+                        onReceiveAskPlayAgain(received);
+                        break;
                     case "EXIT":
                         isRunning = false;
                 }
 
-            } catch (IOException ex) {
+            } catch (IOException | SQLException ex) {
 
                 // leave room if needed
 //                onReceiveLeaveRoom("");
@@ -141,20 +177,229 @@ public class Client implements Runnable {
     }
 
     private void onReceiveGetListOnline() {
+        String result = ServerRun.clientManager.getListUserOnline();
 
+        // send result
+        String msg = "GET_LIST_ONLINE" + ";" + result;
+        ServerRun.clientManager.broadcast(msg);
     }
 
     private void onReceiveGetInfoUser(String received) {
+        String[] splitted = received.split(";");
+        String username = splitted[1];
+        // get info user
+        String result = new UserController().getInfoUser(username);
 
+        String status = "";
+        Client client = ServerRun.clientManager.find(username);
+        if (client == null) {
+            status = "Offline";
+        } else {
+            if (client.getJoinedRoom() == null) {
+                status = "Online";
+            } else {
+                status = "In Game";
+            }
+        }
+        // send result
+        sendData("GET_INFO_USER" + ";" + result + ";" + status);
     }
 
     private void onReceiveLogout() {
-
+        this.loginUser = null;
+        // send result
+        sendData("LOGOUT" + ";" + "success");
+        onReceiveGetListOnline();
     }
 
     private void onReceiveClose() {
+        this.loginUser = null;
+        ServerRun.clientManager.remove(this);
+        onReceiveGetListOnline();
+    }
+
+    //gameplay
+
+    private void onReceiveInviteToPlay(String received) {
+        String[] splitted = received.split(";");
+        String userHost = splitted[1];
+        String userInvited = splitted[2];
+
+        // create new room
+        joinedRoom = ServerRun.roomManager.createRoom();
+        // add client
+        Client c = ServerRun.clientManager.find(loginUser);
+        joinedRoom.addClient(this);
+        clientCompetitor = ServerRun.clientManager.find(userInvited);
+
+        // send result
+        String msg = "INVITE_TO_PLAY;" + "success;" + userHost + ";" + userInvited + ";" + joinedRoom.getId();
+        ServerRun.clientManager.sendToAClient(userInvited, msg);
+    }
+
+    private void onReceiveAcceptPlay(String received) {
+        String[] splitted = received.split(";");
+        String userHost = splitted[1];
+        String userInvited = splitted[2];
+        String roomId = splitted[3];
+
+        Room room = ServerRun.roomManager.find(roomId);
+        joinedRoom = room;
+        joinedRoom.addClient(this);
+
+        clientCompetitor = ServerRun.clientManager.find(userHost);
+
+        // send result
+        String msg = "ACCEPT_PLAY;" + "success;" + userHost + ";" + userInvited + ";" + joinedRoom.getId();
+        ServerRun.clientManager.sendToAClient(userHost, msg);
 
     }
 
+    private void onReceiveRejectPlay(String received) {
+        String[] splitted = received.split(";");
+        String userHost = splitted[1];
+        String userInvited = splitted[2];
+        String roomId = splitted[3];
 
+        // userHost out room
+        ServerRun.clientManager.find(userHost).setJoinedRoom(null);
+        // Delete competitor of userhost
+        ServerRun.clientManager.find(userHost).setClientCompetitor(null);
+
+        // delete room
+        Room room = ServerRun.roomManager.find(roomId);
+        ServerRun.roomManager.remove(room);
+
+        // send result
+        String msg = "REJECT_PLAY;" + "success;" + userHost + ";" + userInvited + ";" + room.getId();
+        ServerRun.clientManager.sendToAClient(userHost, msg);
+    }
+
+    private void onReceiveLeaveGame(String received) throws SQLException {
+        String[] splitted = received.split(";");
+        String user1 = splitted[1];
+        String user2 = splitted[2];
+        String roomId = splitted[3];
+
+        joinedRoom.userLeaveGame(user1);
+
+        this.clientCompetitor = null;
+        this.joinedRoom = null;
+
+        // delete room
+        Room room = ServerRun.roomManager.find(roomId);
+        ServerRun.roomManager.remove(room);
+
+        // userHost out room
+        Client c = ServerRun.clientManager.find(user2);
+        c.setJoinedRoom(null);
+        // Delete competitor of userhost
+        c.setClientCompetitor(null);
+
+        // send result
+        String msg = "LEAVE_GAME;" + "success;" + user1 + ";" + user2;
+        ServerRun.clientManager.sendToAClient(user2, msg);
+    }
+
+    private void onReceiveCheckStatusUser(String received) {
+        String[] splitted = received.split(";");
+        String username = splitted[1];
+
+        String status;
+        Client client = ServerRun.clientManager.find(username);
+        if (client == null) {
+            status = "OFFLINE";
+        } else {
+            if (client.getJoinedRoom() == null) {
+                status = "ONLINE";
+            } else {
+                status = "INGAME";
+            }
+        }
+        // send result
+        sendData("CHECK_STATUS_USER" + ";" + username + ";" + status);
+    }
+
+    private void onReceiveStartGame(String received) {
+        String[] splitted = received.split(";");
+        String user1 = splitted[1];
+        String user2 = splitted[2];
+        String roomId = splitted[3];
+
+        String question1 = Question.genQuestion();
+        String question2 = Question.genQuestion();
+        String question3 = Question.genQuestion();
+        String question4 = Question.genQuestion();
+
+        String data = "START_GAME;success;" + roomId + ";" + question1 + question2 + question3 + question4;
+        // Send question here
+        joinedRoom.resetRoom();
+        joinedRoom.broadcast(data);
+        joinedRoom.startGame();
+    }
+
+    private void onReceiveSubmitResult(String received) throws SQLException {
+        String[] splitted = received.split(";");
+        String user1 = splitted[1];
+        String user2 = splitted[2];
+        String roomId = splitted[3];
+
+        if (user1.equals(joinedRoom.getClient1().getLoginUser())) {
+            joinedRoom.setResultClient1(received);
+        } else if (user1.equals(joinedRoom.getClient2().getLoginUser())) {
+            joinedRoom.setResultClient2(received);
+        }
+
+        while (!joinedRoom.getTime().equals("00:00") && joinedRoom.getTime() != null) {
+            System.out.println(joinedRoom.getTime());
+            try {
+                Thread.sleep(2000);
+            } catch (InterruptedException ex) {
+                System.err.println(ex.getMessage());
+            }
+        }
+
+        String data = "RESULT_GAME;success;" + joinedRoom.handleResultClient()
+                + ";" + joinedRoom.getClient1().getLoginUser() + ";" + joinedRoom.getClient2().getLoginUser() + ";" + joinedRoom.getId();
+        System.out.println(data);
+        joinedRoom.broadcast(data);
+    }
+
+    private void onReceiveAskPlayAgain(String received) throws SQLException {
+        String[] splitted = received.split(";");
+        String reply = splitted[1];
+        String user1 = splitted[2];
+
+        System.out.println("client1: " + joinedRoom.getClient1().getLoginUser());
+        System.out.println("client2: " + joinedRoom.getClient2().getLoginUser());
+
+        if (user1.equals(joinedRoom.getClient1().getLoginUser())) {
+            joinedRoom.setPlayAgainC1(reply);
+        } else if (user1.equals(joinedRoom.getClient2().getLoginUser())) {
+            joinedRoom.setPlayAgainC2(reply);
+        }
+
+        while (!joinedRoom.getWaitingTime().equals("00:00")) {
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException ex) {
+                System.err.println(ex.getMessage());
+            }
+        }
+
+        String result = this.joinedRoom.handlePlayAgain();
+        if (result.equals("YES")) {
+            joinedRoom.broadcast("ASK_PLAY_AGAIN;YES;" + joinedRoom.getClient1().loginUser + ";" + joinedRoom.getClient2().loginUser);
+        } else if (result.equals("NO")) {
+            joinedRoom.broadcast("ASK_PLAY_AGAIN;NO;");
+
+            Room room = ServerRun.roomManager.find(joinedRoom.getId());
+            // delete room
+            ServerRun.roomManager.remove(room);
+            this.joinedRoom = null;
+            this.clientCompetitor = null;
+        } else if (result == null) {
+            System.out.println("receive message failed");
+        }
+    }
 }

@@ -2,6 +2,7 @@ package tcpServer.run;
 
 import tcpServer.service.Client;
 import tcpServer.service.ClientManager;
+import tcpServer.service.RoomManager;
 
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -13,6 +14,7 @@ import java.util.concurrent.TimeUnit;
 public class ServerRun {
     private static ServerSocket serverSocket;
     public static ClientManager clientManager;
+    public static RoomManager roomManager;
 
     private static final int SERVER_PORT = 2000;
     public static boolean isShutDown = false;
@@ -23,6 +25,7 @@ public class ServerRun {
             System.out.println("Server started at port " + SERVER_PORT);
 
             clientManager = new ClientManager();
+            roomManager = new RoomManager();
 
             // create threadpool
             ThreadPoolExecutor executor = new ThreadPoolExecutor(

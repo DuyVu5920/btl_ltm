@@ -6,6 +6,10 @@
 - tạo kết nối server-client và kết nối database
 - code logic game
 
+**Nguyễn Văn Minh - B21DCCN532:**
+
+**Nguyễn Hải Nam - B21DCCN549:**
+
 ## Phân tích yêu cầu ứng dụng
 - Hệ thống có một server và nhiều client. Server lưu toàn bộ thông tin và dữ liệu.
 - Để chơi, người chơi phải login vào tài khoản của mình từ một máy client. Sau khi login thành công, giao diện hiện lên một danh sách các người chơi đang online, mỗi người chơi có các thông tin: tên, tổng số điểm hiện có của người chơi, trạng thái (hoặc đang bận nếu đang chơi với người khác, hoặc đang rỗi nếu không chơi với ai).
