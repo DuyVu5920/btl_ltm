@@ -5,24 +5,17 @@ import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.table.DefaultTableModel;
 
+import tcpClient.controller.SocketHandler;
 import tcpClient.run.ClientRun;
 
 /**
  * @author admin
  */
 public class HomeView extends javax.swing.JFrame {
-    String statusCompetitor = "OFFLINE";
-
-    /**
-     * Creates new form HomeView
-     */
-    public void getUserOnline() {
-
-    }
+    String statusCompetitor = "";
 
     public HomeView() {
         initComponents();
-
     }
 
     public void setStatusCompetitor(String status) {
@@ -73,11 +66,7 @@ public class HomeView extends javax.swing.JFrame {
         btnPlay.setText("Play");
         btnPlay.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                try {
-                    btnPlayActionPerformed(evt);
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
+                btnPlayActionPerformed(evt);
             }
         });
 
@@ -219,25 +208,29 @@ public class HomeView extends javax.swing.JFrame {
         setLocationRelativeTo(null);
     }// </editor-fold>
 
-    private void btnPlayActionPerformed(java.awt.event.ActionEvent evt) throws InterruptedException {
+    private void btnPlayActionPerformed(java.awt.event.ActionEvent evt) {
         int row = tblUser.getSelectedRow();
         if (row == -1) {
             JOptionPane.showMessageDialog(HomeView.this, "You haven't chosen anyone yet! Please select one user.", "ERROR", JOptionPane.ERROR_MESSAGE);
         } else {
-            String userSelected = String.valueOf(tblUser.getValueAt(row, 0));
+            String selectedUser = String.valueOf(tblUser.getValueAt(row, 0));
             // check user online/in game
-            ClientRun.socketHandler.checkStatusUser(userSelected);
-            System.out.println(statusCompetitor);
-            Thread.sleep(10);
-            System.out.println(statusCompetitor);
+
+            ClientRun.socketHandler.checkStatusUser(selectedUser);
+            try {
+                Thread.sleep(10);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
             switch (statusCompetitor) {
-                case "ONLINE" -> ClientRun.socketHandler.inviteToPlay(userSelected);
+                case "ONLINE" -> ClientRun.socketHandler.inviteToPlay(selectedUser);
                 case "OFFLINE" ->
                         JOptionPane.showMessageDialog(HomeView.this, "This user is offline.", "ERROR", JOptionPane.ERROR_MESSAGE);
                 case "INGAME" ->
                         JOptionPane.showMessageDialog(HomeView.this, "This user is in game.", "ERROR", JOptionPane.ERROR_MESSAGE);
                 default -> System.err.println("receive message failed");
             }
+
         }
     }
 
@@ -246,12 +239,11 @@ public class HomeView extends javax.swing.JFrame {
         if (row == -1) {
             JOptionPane.showMessageDialog(HomeView.this, "You haven't chosen anyone yet! Please select one user.", "ERROR", JOptionPane.ERROR_MESSAGE);
         } else {
-            String userSelected = String.valueOf(tblUser.getValueAt(row, 0));
-            System.out.println(userSelected);
-            if (userSelected.equals(ClientRun.socketHandler.getLoginUser())) {
+            String selectedUser = String.valueOf(tblUser.getValueAt(row, 0));
+            if (selectedUser.equals(ClientRun.socketHandler.getLoginUser())) {
                 JOptionPane.showMessageDialog(HomeView.this, "You can not chat yourself.", "ERROR", JOptionPane.ERROR_MESSAGE);
             } else {
-                JOptionPane.showMessageDialog(HomeView.this, "chat with" + userSelected);
+                ClientRun.socketHandler.inviteToChat(selectedUser);
             }
         }
     }
@@ -274,12 +266,11 @@ public class HomeView extends javax.swing.JFrame {
         if (row == -1) {
             JOptionPane.showMessageDialog(HomeView.this, "You haven't chosen anyone yet! Please select one user.", "ERROR", JOptionPane.ERROR_MESSAGE);
         } else {
-            String userSelected = String.valueOf(tblUser.getValueAt(row, 0));
-            System.out.println(userSelected);
-            if (userSelected.equals(ClientRun.socketHandler.getLoginUser())) {
+            String selectedUser = String.valueOf(tblUser.getValueAt(row, 0));
+            if (selectedUser.equals(ClientRun.socketHandler.getLoginUser())) {
                 JOptionPane.showMessageDialog(HomeView.this, "You can not see yourself.", "ERROR", JOptionPane.ERROR_MESSAGE);
             } else {
-                ClientRun.socketHandler.getInfoUser(userSelected);
+                ClientRun.socketHandler.getInfoUser(selectedUser);
             }
         }
     }
@@ -293,7 +284,7 @@ public class HomeView extends javax.swing.JFrame {
     }
 
     private void btnLeaderboardActionPerformed(java.awt.event.ActionEvent evt) {
-        // TODO add your handling code here:
+        ClientRun.socketHandler.openLeaderboard();
     }
 
     /**

@@ -163,7 +163,7 @@ public class Room {
     }
 
     private void waitingClientTimer() {
-        waitingTimer = new CountDownTimer(12);
+        waitingTimer = new CountDownTimer(21);
         waitingTimer.setTimerCallBack(
                 null,
                 (Callable) () -> {
@@ -273,8 +273,8 @@ public class Room {
     }
 
     public void draw() throws SQLException {
-        UserModel user1 = new UserController().getUser(client1.getLoginUser());
-        UserModel user2 = new UserController().getUser(client2.getLoginUser());
+        UserModel user1 = UserController.getUser(client1.getLoginUser());
+        UserModel user2 = UserController.getUser(client2.getLoginUser());
 
         user1.setDraw(user1.getDraw() + 1);
         user2.setDraw(user2.getDraw() + 1);
@@ -294,13 +294,13 @@ public class Room {
         user1.setAvgCompetitor(newAvgCompetitor1);
         user2.setAvgCompetitor(newAvgCompetitor2);
 
-        new UserController().updateUser(user1);
-        new UserController().updateUser(user2);
+        UserController.updateUser(user1);
+        UserController.updateUser(user2);
     }
 
     public void client1Win(int time) throws SQLException {
-        UserModel user1 = new UserController().getUser(client1.getLoginUser());
-        UserModel user2 = new UserController().getUser(client2.getLoginUser());
+        UserModel user1 = UserController.getUser(client1.getLoginUser());
+        UserModel user2 = UserController.getUser(client2.getLoginUser());
 
         user1.setWin(user1.getWin() + 1);
         user2.setLose(user2.getLose() + 1);
@@ -320,13 +320,13 @@ public class Room {
         System.out.println("newAvgTime1: " + newAvgTime1);
         user1.setAvgTime(newAvgTime1);
 
-        new UserController().updateUser(user1);
-        new UserController().updateUser(user2);
+        UserController.updateUser(user1);
+        UserController.updateUser(user2);
     }
 
     public void client2Win(int time) throws SQLException {
-        UserModel user1 = new UserController().getUser(client1.getLoginUser());
-        UserModel user2 = new UserController().getUser(client2.getLoginUser());
+        UserModel user1 = UserController.getUser(client1.getLoginUser());
+        UserModel user2 = UserController.getUser(client2.getLoginUser());
 
         user2.setWin(user2.getWin() + 1);
         user1.setLose(user1.getLose() + 1);
@@ -346,8 +346,8 @@ public class Room {
         System.out.println("newAvgTime2: " + newAvgTime2);
         user2.setAvgTime(newAvgTime2);
 
-        new UserController().updateUser(user1);
-        new UserController().updateUser(user2);
+        UserController.updateUser(user1);
+        UserController.updateUser(user2);
     }
 
     public void userLeaveGame(String username) throws SQLException {

@@ -1,14 +1,4 @@
 # Game giải toán đối kháng
-## Công việc của mỗi thành viên:
-
-**Vũ Trọng Duy - B18DCCN114:**
-- thiết kế GUI phần gameplay và login/register
-- tạo kết nối server-client và kết nối database
-- code logic game
-
-**Nguyễn Văn Minh - B21DCCN532:**
-
-**Nguyễn Hải Nam - B21DCCN549:**
 
 ## Phân tích yêu cầu ứng dụng
 - Hệ thống có một server và nhiều client. Server lưu toàn bộ thông tin và dữ liệu.

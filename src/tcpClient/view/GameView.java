@@ -32,7 +32,7 @@ public class GameView extends JFrame {
     String b3 = "";
     String b4 = "";
     
-    boolean answer = false;
+    boolean replied = false;
     /**
      * Creates new form GameView
      */
@@ -121,13 +121,13 @@ public class GameView extends JFrame {
     }
     
     public void setStateHostRoom () {
-        answer = false;
+        replied = false;
         btnStart.setVisible(true);
         lbWaiting.setVisible(false);
     }
     
-    public void setStateUserInvited () {
-        answer = false;
+    public void setStateInvitedUser () {
+        replied = false;
         btnStart.setVisible(false);
         lbWaiting.setVisible(true);
     }
@@ -140,7 +140,7 @@ public class GameView extends JFrame {
     }
     
     public void setStartGame (int matchTimeLimit) {
-        answer = false;
+        replied = false;
         buttonGroup1.clearSelection();
         buttonGroup2.clearSelection();
         buttonGroup3.clearSelection();
@@ -176,7 +176,7 @@ public class GameView extends JFrame {
                 null,
                 (Callable) () -> {
                     lbWaitingTimer.setText("" + CustumDateTimeFormatter.secondsToMinutes(waitingClientTimer.getCurrentTick()));
-                    if (lbWaitingTimer.getText().equals("00:00") && answer == false) {
+                    if (lbWaitingTimer.getText().equals("00:00") && !replied) {
                         hideAskPlayAgain();
                     }
                     return null;
@@ -651,13 +651,13 @@ public class GameView extends JFrame {
 
     private void btnNoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnNoActionPerformed
         ClientRun.socketHandler.rejectPlayAgain();
-        answer = true;
+        replied = true;
         hideAskPlayAgain();
     }//GEN-LAST:event_btnNoActionPerformed
 
     private void btnYesActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnYesActionPerformed
         ClientRun.socketHandler.acceptPlayAgain();
-        answer = true;
+        replied = true;
         hideAskPlayAgain();
     }//GEN-LAST:event_btnYesActionPerformed
 
@@ -758,14 +758,6 @@ public class GameView extends JFrame {
 
     public void setB4(String b4) {
         this.b4 = b4;
-    }
-
-    public boolean isAnswer() {
-        return answer;
-    }
-
-    public void setAnswer(boolean answer) {
-        this.answer = answer;
     }
     
     

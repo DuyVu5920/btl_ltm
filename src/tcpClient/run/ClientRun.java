@@ -11,7 +11,8 @@ public class ClientRun {
         HOMEVIEW,
         INFOPLAYER,
         MESSAGEVIEW,
-        GAMEVIEW
+        GAMEVIEW,
+        LEADERBOARDVIEW
     }
 
     // scenes
@@ -22,6 +23,7 @@ public class ClientRun {
     public static GameView gameView;
     public static InfoPlayerView infoPlayerView;
     public static MessageView messageView;
+    public static LeaderboardView leaderboardView;
 
     //controller instance
     public static SocketHandler socketHandler = new SocketHandler();
@@ -39,6 +41,7 @@ public class ClientRun {
         infoPlayerView = new InfoPlayerView();
         messageView = new MessageView();
         gameView = new GameView();
+        leaderboardView = new LeaderboardView();
     }
 
     public static void openScene(SceneName sceneName) {
@@ -72,6 +75,10 @@ public class ClientRun {
                     gameView = new GameView();
                     gameView.setVisible(true);
                     break;
+                case LEADERBOARDVIEW:
+                    leaderboardView = new LeaderboardView();
+                    leaderboardView.setVisible(true);
+                    break;
                 default:
                     break;
             }
@@ -102,6 +109,9 @@ public class ClientRun {
                 case GAMEVIEW:
                     gameView.dispose();
                     break;
+                case LEADERBOARDVIEW:
+                    leaderboardView.dispose();
+                    break;
                 default:
                     break;
             }
@@ -116,6 +126,7 @@ public class ClientRun {
         infoPlayerView.dispose();
         messageView.dispose();
         gameView.dispose();
+        leaderboardView.dispose();
     }
 
     public static void main(String[] args) {

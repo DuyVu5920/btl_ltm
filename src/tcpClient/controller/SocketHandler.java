@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.util.Arrays;
 import java.util.Vector;
 
 public class SocketHandler {
@@ -117,6 +118,24 @@ public class SocketHandler {
                     case "GET_INFO_USER":
                         onReceiveGetInfoUser(received);
                         break;
+                    case "OPEN_LEADERBOARD":
+                        onReceiveOpenLeaderboard(received);
+                        break;
+                    case "INVITE_TO_CHAT":
+                        onReceiveInviteToChat(received);
+                        break;
+                    case "ACCEPT_MESSAGE":
+                        onReceiveAcceptMessage(received);
+                        break;
+                    case "REJECT_MESSAGE":
+                        onReceiveRejectMessage(received);
+                        break;
+                    case "LEAVE_CHAT":
+                        onReceiveLeaveChat(received);
+                        break;
+                    case "CHAT_MESSAGE":
+                        onReceiveChatMessage(received);
+                        break;
                     case "INVITE_TO_PLAY":
                         onReceiveInviteToPlay(received);
                         break;
@@ -213,20 +232,40 @@ public class SocketHandler {
         sendData("CHECK_STATUS_USER;" + username);
     }
 
+    //chat
+    public void inviteToChat(String invitedUser) {
+        sendData("INVITE_TO_CHAT;" + loginUser + ";" + invitedUser);
+    }
+
+    public void leaveChat(String invitedUser) {
+        sendData("LEAVE_CHAT;" + loginUser + ";" + invitedUser);
+    }
+
+    public void sendMessage(String invitedUser, String message) {
+        String chat = "[" + loginUser + "] : " + message + "\n";
+        ClientRun.messageView.setContentChat(chat);
+
+        sendData("CHAT_MESSAGE;" + loginUser + ";" + invitedUser + ";" + message);
+    }
+
+    public void openLeaderboard() {
+        sendData("OPEN_LEADERBOARD");
+    }
+
     //gameplay
-
-    public void inviteToPlay(String userInvited) {
-        sendData("INVITE_TO_PLAY;" + loginUser + ";" + userInvited);
+    public void inviteToPlay(String invitedUser) {
+        sendData("INVITE_TO_PLAY;" + loginUser + ";" + invitedUser);
     }
 
-    public void startGame (String userInvited) {
-        sendData("START_GAME;" + loginUser + ";" + userInvited + ";" + roomIdPresent);
+    public void startGame(String invitedUser) {
+        sendData("START_GAME;" + loginUser + ";" + invitedUser + ";" + roomIdPresent);
     }
 
-    public void leaveGame(String userInvited) {
-        sendData("LEAVE_GAME;" + loginUser + ";" + userInvited + ";" + roomIdPresent);
+    public void leaveGame(String invitedUser) {
+        sendData("LEAVE_GAME;" + loginUser + ";" + invitedUser + ";" + roomIdPresent);
     }
-    public void submitResult (String competitor) {
+
+    public void submitResult(String competitor) {
         String result1 = ClientRun.gameView.getSelectedButton1();
         String result2 = ClientRun.gameView.getSelectedButton2();
         String result3 = ClientRun.gameView.getSelectedButton3();
@@ -356,6 +395,20 @@ public class SocketHandler {
         }
     }
 
+    private void onReceiveOpenLeaderboard(String received) {
+        // get status from data
+        String[] splitted = received.split(";");
+        String status = splitted[1];
+
+        if (status.equals("success")) {
+            ClientRun.openScene(ClientRun.SceneName.LEADERBOARDVIEW);
+            for (int i = 2; i < splitted.length; i++) {
+                String[] userData = splitted[i].split(",");
+                ClientRun.leaderboardView.addUserData(userData);
+            }
+        }
+    }
+
     private void onReceiveLogout(String received) {
         // get status from data
         String[] splitted = received.split(";");
@@ -367,6 +420,80 @@ public class SocketHandler {
         }
     }
 
+    // chat
+    private void onReceiveInviteToChat(String received) {
+        // get status from data
+        String[] splitted = received.split(";");
+        String status = splitted[1];
+
+        if (status.equals("success")) {
+            String hostUser = splitted[2];
+            String invitedUser = splitted[3];
+            if (JOptionPane.showConfirmDialog(ClientRun.homeView, hostUser + " want to chat with you? Y/N", "Chat?", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_NO_OPTION) {
+                ClientRun.openScene(ClientRun.SceneName.MESSAGEVIEW);
+                ClientRun.messageView.setInfoUserChat(hostUser);
+                sendData("ACCEPT_MESSAGE;" + hostUser + ";" + invitedUser);
+            } else {
+                sendData("REJECT_MESSAGE;" + hostUser + ";" + invitedUser);
+            }
+        }
+    }
+
+    private void onReceiveAcceptMessage(String received) {
+        // get status from data
+        String[] splitted = received.split(";");
+        String status = splitted[1];
+
+        if (status.equals("success")) {
+            String hostUser = splitted[2];
+            String invitedUser = splitted[3];
+
+            ClientRun.openScene(ClientRun.SceneName.MESSAGEVIEW);
+            ClientRun.messageView.setInfoUserChat(invitedUser);
+        }
+    }
+
+    private void onReceiveRejectMessage(String received) {
+        // get status from data
+        String[] splitted = received.split(";");
+        String status = splitted[1];
+
+        if (status.equals("success")) {
+            String hostUser = splitted[2];
+            String invitedUser = splitted[3];
+
+            JOptionPane.showMessageDialog(ClientRun.homeView, invitedUser + " don't want to chat with you!");
+        }
+    }
+
+    private void onReceiveLeaveChat(String received) {
+        // get status from data
+        String[] splitted = received.split(";");
+        String status = splitted[1];
+
+        if (status.equals("success")) {
+            String exitUser = splitted[2];
+
+            ClientRun.closeScene(ClientRun.SceneName.MESSAGEVIEW);
+            JOptionPane.showMessageDialog(ClientRun.homeView, exitUser + " left the chat!");
+        }
+    }
+
+    private void onReceiveChatMessage(String received) {
+        // get status from data
+        String[] splitted = received.split(";");
+        String status = splitted[1];
+
+        if (status.equals("success")) {
+            String hostUser = splitted[2];
+            String invitedUser = splitted[3];
+            String message = splitted[4];
+
+            String chat = "[" + hostUser + "] : " + message + "\n";
+            ClientRun.messageView.setContentChat(chat);
+        }
+    }
+
     //Handle gameplay
     private void onReceiveInviteToPlay(String received) {
         // get status from data
@@ -374,17 +501,17 @@ public class SocketHandler {
         String status = splitted[1];
 
         if (status.equals("success")) {
-            String userHost = splitted[2];
-            String userInvited = splitted[3];
+            String hostUser = splitted[2];
+            String invitedUser = splitted[3];
             String roomId = splitted[4];
-            if (JOptionPane.showConfirmDialog(ClientRun.homeView, userHost + " want to play game with you?", "Game?", JOptionPane.YES_NO_OPTION)==JOptionPane.YES_NO_OPTION){
+            if (JOptionPane.showConfirmDialog(ClientRun.homeView, hostUser + " want to play game with you?", "Game?", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_NO_OPTION) {
                 ClientRun.openScene(ClientRun.SceneName.GAMEVIEW);
-                ClientRun.gameView.setInfoPlayer(userHost);
+                ClientRun.gameView.setInfoPlayer(hostUser);
                 roomIdPresent = roomId;
-                ClientRun.gameView.setStateUserInvited();
-                sendData("ACCEPT_PLAY;" + userHost + ";" + userInvited + ";" + roomId);
+                ClientRun.gameView.setStateInvitedUser();
+                sendData("ACCEPT_PLAY;" + hostUser + ";" + invitedUser + ";" + roomId);
             } else {
-                sendData("REJECT_PLAY;" + userHost + ";" + userInvited + ";" + roomId);
+                sendData("REJECT_PLAY;" + hostUser + ";" + invitedUser + ";" + roomId);
             }
         }
     }
@@ -395,11 +522,11 @@ public class SocketHandler {
         String status = splitted[1];
 
         if (status.equals("success")) {
-            String userHost = splitted[2];
-            String userInvited = splitted[3];
+            String hostUser = splitted[2];
+            String invitedUser = splitted[3];
             roomIdPresent = splitted[4];
             ClientRun.openScene(ClientRun.SceneName.GAMEVIEW);
-            ClientRun.gameView.setInfoPlayer(userInvited);
+            ClientRun.gameView.setInfoPlayer(invitedUser);
             ClientRun.gameView.setStateHostRoom();
         }
     }
@@ -410,10 +537,10 @@ public class SocketHandler {
         String status = splitted[1];
 
         if (status.equals("success")) {
-            String userHost = splitted[2];
-            String userInvited = splitted[3];
+            String hostUser = splitted[2];
+            String invitedUser = splitted[3];
 
-            JOptionPane.showMessageDialog(ClientRun.homeView, userInvited + " don't want to play with you!");
+            JOptionPane.showMessageDialog(ClientRun.homeView, invitedUser + " don't want to play with you!");
         }
     }
 
@@ -486,9 +613,6 @@ public class SocketHandler {
         String[] splitted = received.split(";");
         String status = splitted[1];
         String result = splitted[2];
-        String user1 = splitted[3];
-        String user2 = splitted[4];
-        String roomId = splitted[5];
 
         if (status.equals("success")) {
             ClientRun.gameView.setWaitingRoom();
@@ -514,7 +638,7 @@ public class SocketHandler {
             if (loginUser.equals(splitted[2])) {
                 ClientRun.gameView.setStateHostRoom();
             } else {
-                ClientRun.gameView.setStateUserInvited();
+                ClientRun.gameView.setStateInvitedUser();
             }
         }
     }

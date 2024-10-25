@@ -18,8 +18,6 @@ public class Client implements Runnable {
     Client clientCompetitor;
     Room joinedRoom;
 
-    private UserController userController = new UserController();
-
     public Client(Socket socket) throws IOException {
         this.socket = socket;
         this.dis = new DataInputStream(socket.getInputStream());
@@ -61,7 +59,6 @@ public class Client implements Runnable {
         }
     }
 
-
     @Override
     public void run() {
 
@@ -72,7 +69,7 @@ public class Client implements Runnable {
             try {
                 // receive the request from client
                 received = dis.readUTF();
-                System.out.println("RECEIVED: "+received);
+                System.out.println("RECEIVED: " + received);
                 String type = received.split(";")[0];
 
                 switch (type) {
@@ -93,6 +90,26 @@ public class Client implements Runnable {
                         break;
                     case "CLOSE":
                         onReceiveClose();
+                        break;
+                    // chat
+                    case "INVITE_TO_CHAT":
+                        onReceiveInviteToChat(received);
+                        break;
+                    case "ACCEPT_MESSAGE":
+                        onReceiveAcceptMessage(received);
+                        break;
+                    case "REJECT_MESSAGE":
+                        onReceiveRejectMessage(received);
+                        break;
+                    case "LEAVE_CHAT":
+                        onReceiveLeaveChat(received);
+                        break;
+                    case "CHAT_MESSAGE":
+                        onReceiveChatMessage(received);
+                        break;
+
+                    case "OPEN_LEADERBOARD":
+                        onReceiveOpenLeaderboard();
                         break;
                     //gameplay
                     case "INVITE_TO_PLAY":
@@ -152,7 +169,7 @@ public class Client implements Runnable {
         String password = splitted[2];
 
         // reigster
-        String result = userController.register(username, password);
+        String result = UserController.register(username, password);
 
         // send result
         sendData("REGISTER" + ";" + result);
@@ -164,7 +181,7 @@ public class Client implements Runnable {
         String password = splitted[2];
 
         // check login
-        String result = userController.login(username, password);
+        String result = UserController.login(username, password);
 
         if (result.split(";")[0].equals("success")) {
             // set login user
@@ -188,7 +205,7 @@ public class Client implements Runnable {
         String[] splitted = received.split(";");
         String username = splitted[1];
         // get info user
-        String result = new UserController().getInfoUser(username);
+        String result = UserController.getInfoUser(username);
 
         String status = "";
         Client client = ServerRun.clientManager.find(username);
@@ -218,61 +235,118 @@ public class Client implements Runnable {
         onReceiveGetListOnline();
     }
 
-    //gameplay
+    //chat
+    private void onReceiveInviteToChat(String received) {
+        String[] splitted = received.split(";");
+        String hostUser = splitted[1];
+        String invitedUser = splitted[2];
 
+        // send result
+        String msg = "INVITE_TO_CHAT;" + "success;" + hostUser + ";" + invitedUser;
+        ServerRun.clientManager.sendToAClient(invitedUser, msg);
+    }
+
+    private void onReceiveAcceptMessage(String received) {
+        String[] splitted = received.split(";");
+        String hostUser = splitted[1];
+        String invitedUser = splitted[2];
+
+        // send result
+        String msg = "ACCEPT_MESSAGE;" + "success;" + hostUser + ";" + invitedUser;
+        ServerRun.clientManager.sendToAClient(hostUser, msg);
+    }
+
+    private void onReceiveRejectMessage(String received) {
+        String[] splitted = received.split(";");
+        String hostUser = splitted[1];
+        String invitedUser = splitted[2];
+
+        // send result
+        String msg = "REJECT_MESSAGE;" + "success;" + hostUser + ";" + invitedUser;
+        ServerRun.clientManager.sendToAClient(hostUser, msg);
+    }
+
+    private void onReceiveLeaveChat(String received) {
+        String[] splitted = received.split(";");
+        String hostUser = splitted[1];
+        String invitedUser = splitted[2];
+
+        // send result
+        String msg = "LEAVE_CHAT;" + "success;" + hostUser + ";" + invitedUser;
+        ServerRun.clientManager.sendToAClient(invitedUser, msg);
+    }
+
+    private void onReceiveChatMessage(String received) {
+        String[] splitted = received.split(";");
+        String hostUser = splitted[1];
+        String invitedUser = splitted[2];
+        String message = splitted[3];
+
+        // send result
+        String msg = "CHAT_MESSAGE;" + "success;" + hostUser + ";" + invitedUser + ";" + message;
+        ServerRun.clientManager.sendToAClient(invitedUser, msg);
+    }
+
+    private void onReceiveOpenLeaderboard() {
+        String result = UserController.getAllUsers();
+        String msg = "OPEN_LEADERBOARD;" + result;
+        sendData(msg);
+    }
+
+    //gameplay
     private void onReceiveInviteToPlay(String received) {
         String[] splitted = received.split(";");
-        String userHost = splitted[1];
-        String userInvited = splitted[2];
+        String hostUser = splitted[1];
+        String invitedUser = splitted[2];
 
         // create new room
         joinedRoom = ServerRun.roomManager.createRoom();
         // add client
         Client c = ServerRun.clientManager.find(loginUser);
         joinedRoom.addClient(this);
-        clientCompetitor = ServerRun.clientManager.find(userInvited);
+        clientCompetitor = ServerRun.clientManager.find(invitedUser);
 
         // send result
-        String msg = "INVITE_TO_PLAY;" + "success;" + userHost + ";" + userInvited + ";" + joinedRoom.getId();
-        ServerRun.clientManager.sendToAClient(userInvited, msg);
+        String msg = "INVITE_TO_PLAY;" + "success;" + hostUser + ";" + invitedUser + ";" + joinedRoom.getId();
+        ServerRun.clientManager.sendToAClient(invitedUser, msg);
     }
 
     private void onReceiveAcceptPlay(String received) {
         String[] splitted = received.split(";");
-        String userHost = splitted[1];
-        String userInvited = splitted[2];
+        String hostUser = splitted[1];
+        String invitedUser = splitted[2];
         String roomId = splitted[3];
 
         Room room = ServerRun.roomManager.find(roomId);
         joinedRoom = room;
         joinedRoom.addClient(this);
 
-        clientCompetitor = ServerRun.clientManager.find(userHost);
+        clientCompetitor = ServerRun.clientManager.find(hostUser);
 
         // send result
-        String msg = "ACCEPT_PLAY;" + "success;" + userHost + ";" + userInvited + ";" + joinedRoom.getId();
-        ServerRun.clientManager.sendToAClient(userHost, msg);
+        String msg = "ACCEPT_PLAY;" + "success;" + hostUser + ";" + invitedUser + ";" + joinedRoom.getId();
+        ServerRun.clientManager.sendToAClient(hostUser, msg);
 
     }
 
     private void onReceiveRejectPlay(String received) {
         String[] splitted = received.split(";");
-        String userHost = splitted[1];
-        String userInvited = splitted[2];
+        String hostUser = splitted[1];
+        String invitedUser = splitted[2];
         String roomId = splitted[3];
 
-        // userHost out room
-        ServerRun.clientManager.find(userHost).setJoinedRoom(null);
-        // Delete competitor of userhost
-        ServerRun.clientManager.find(userHost).setClientCompetitor(null);
+        // hostUser out room
+        ServerRun.clientManager.find(hostUser).setJoinedRoom(null);
+        // Delete competitor of hostUser
+        ServerRun.clientManager.find(hostUser).setClientCompetitor(null);
 
         // delete room
         Room room = ServerRun.roomManager.find(roomId);
         ServerRun.roomManager.remove(room);
 
         // send result
-        String msg = "REJECT_PLAY;" + "success;" + userHost + ";" + userInvited + ";" + room.getId();
-        ServerRun.clientManager.sendToAClient(userHost, msg);
+        String msg = "REJECT_PLAY;" + "success;" + hostUser + ";" + invitedUser + ";" + room.getId();
+        ServerRun.clientManager.sendToAClient(hostUser, msg);
     }
 
     private void onReceiveLeaveGame(String received) throws SQLException {
@@ -290,10 +364,10 @@ public class Client implements Runnable {
         Room room = ServerRun.roomManager.find(roomId);
         ServerRun.roomManager.remove(room);
 
-        // userHost out room
+        // hostUser out room
         Client c = ServerRun.clientManager.find(user2);
         c.setJoinedRoom(null);
-        // Delete competitor of userhost
+        // Delete competitor of hostUser
         c.setClientCompetitor(null);
 
         // send result
